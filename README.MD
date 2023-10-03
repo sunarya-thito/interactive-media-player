@@ -16,6 +16,9 @@ media yang sedang diputar.
    Video id bisa didapatkan dari url video YouTube. Contoh:
    `https://www.youtube.com/watch?v=<id>`.
 
+## Demo
+[Lihat Demo](https://sunarya-thito.github.io/interactive-media-player?v=SePNp6lxLWI)
+
 ## Skema JSON
 ```json
 {

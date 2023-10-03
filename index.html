@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Media Player</title>
+    <style>
+        /*
+        Disini anda dapat menambahkan style untuk mempercantik tampilan
+        button.
+         */
+        .button {
+            background-color: #4CAF50;
+            border: solid 2px #ccdec1;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            object-fit: contain;
+            font-size: 2.5vw;
+        }
+
+        .button-container.bottom > .button {
+            height: 30%;
+            width: 100%;
+        }
+
+        .button-container.top > .button {
+            height: 30%;
+            width: 100%;
+        }
+
+        .button-container.left > .button {
+            width: 30%;
+            height: 100%;
+        }
+
+        .button-container.right > .button {
+            width: 30%;
+            height: 100%;
+        }
+
+        .button:hover {
+            background-color: #3e8e41;
+        }
+
+        button {
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .button-visible {
+            opacity: 1 !important;
+        }
+
+        .button-container.button-visible > .button {
+            display: block;
+        }
+
+        .button-container > .button {
+            display: none;
+        }
+
+        .button-container {
+            z-index: 100;
+            transition: opacity 0.5s ease-in-out;
+            opacity: 0;
+            position: absolute;
+            top: 5em;
+            bottom: 4em;
+            left: 0;
+            right: 0;
+            display: flex;
+            pointer-events: none;
+        }
+
+        .button-container.bottom {
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .button-container.top {
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .button-container.left {
+            justify-content: flex-start;
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .button-container.right {
+            justify-content: flex-end;
+            align-items: flex-end;
+            flex-direction: column;
+        }
+
+        .button-container.full {
+            justify-content: center;
+            align-items: center;
+        }
+
+        #player {
+            width: 100%;
+            height: 100%;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="player"></div>
+    <script>
+        let interactionData = {
+            options: {
+                persistent: false,
+                controls: true,
+                rel: 0,
+                loopEnd: 1,
+            },
+            appearTime: 10,
+            layout: "BOTTOM",
+            buttons: [],
+            endAction: [],
+        }
+
+        let player;
+
+        // get the query string from the URL
+        let queryString = window.location.search;
+        // parse the query string - removing the ? at the beginning
+        let urlParams = new URLSearchParams(queryString.substring(1));
+        // get the video ID from the query string
+        let videoId = urlParams.get('v');
+
+        let autoplay = urlParams.get('autoplay');
+
+        let startTime = urlParams.get('time');
+
+        let interactionSchemeUrl = "/videos/" + videoId + ".json";
+
+        // create the buttons
+        let buttonElements = [];
+
+        function setQueryParam(key, value) {
+            urlParams.set(key, value);
+            window.history.pushState({}, '', `${location.pathname}?${urlParams}`);
+            // reload the page
+            window.location.reload();
+        }
+
+        // if query param is changed, reload the page
+        window.addEventListener('popstate', () => {
+            window.location.reload();
+        });
+
+        function executeAction({type, value}) {
+            if (type === 'GO_TO') {
+                // change the video ID in the URL
+                if (player) {
+                    urlParams.set('time', Math.floor(player.getCurrentTime()));
+                    urlParams.set('autoplay', '1');
+                }
+                window.history.replaceState({}, '', `${location.pathname}?${urlParams}`);
+
+
+                urlParams.set('autoplay', '1');
+                urlParams.delete('time');
+                setQueryParam('v', value);
+            } else if (type === 'SEEK_TO') {
+                player.seekTo(value);
+                player.playVideo();
+            }
+        }
+
+        function createButton({label, action}) {
+            let button = document.createElement('button');
+            button.className = 'button';
+            button.innerHTML = label;
+            button.onclick = () => {
+                // check if action is an array
+                if (Array.isArray(action)) {
+                    // if it is an array, execute each action
+                    action.forEach((action) => {
+                        executeAction(action);
+                    });
+                } else {
+                    // if it is not an array, execute the action
+                    executeAction(action);
+                }
+            };
+            return button;
+        }
+
+        let buttonContainer = document.createElement('div');
+        buttonContainer.className = 'button-container';
+        document.body.appendChild(buttonContainer);
+
+        // fetch
+        fetch(interactionSchemeUrl)
+            .then(response => response.json())
+            .then(data => {
+                // assign the data to the interactionData variable
+                let mergedInteractionData = {...interactionData, ...data};
+                let mergedOptions = {...interactionData.options, ...data.options};
+                mergedInteractionData.options = mergedOptions;
+                interactionData = mergedInteractionData;
+                console.log(interactionData);
+
+                interactionData.buttons.forEach((buttonData) => {
+                    let button = createButton(buttonData);
+                    buttonContainer.appendChild(button);
+                    buttonElements.push(button);
+                });
+
+                if (interactionData.options.persistent) {
+                }
+                initialize();
+            })
+            .catch(error => {
+                initialize();
+            });
+
+
+        // layout
+        let layout = interactionData.layout;
+        buttonContainer.classList.add(layout.toLowerCase());
+
+        function initialize() {
+            let tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/player_api';
+            let firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            window.onYouTubePlayerAPIReady = function() {
+                player = new YT.Player('player', {
+                    videoId: videoId,
+                    playerVars: {
+                        autoplay: autoplay ? 1 : 0,
+                        rel: interactionData.options.rel ? 1 : 0,
+                        controls: interactionData.options.controls ? 1 : 0,
+                        start: startTime,
+                    },
+                    events: {
+                        'onStateChange': onPlayerStateChange,
+                    }
+                });
+            }
+            function onPlayerStateChange(event) {
+                if (event.data == YT.PlayerState.ENDED) {
+                    let duration = player.getDuration();
+                    let loopEnd = interactionData.options.loopEnd;
+                    let seekTo = duration - loopEnd;
+                    if (seekTo < 0) {
+                        seekTo = 0;
+                    } else if (seekTo > duration) {
+                        seekTo = duration;
+                    }
+                    player.seekTo(seekTo);
+                    player.pauseVideo();
+                    // execute endAction if it exists
+                    if (interactionData.endAction) {
+                        if (Array.isArray(interactionData.endAction)) {
+                            // if it is an array, execute each action
+                            interactionData.endAction.forEach((action) => {
+                                executeAction(action);
+                            });
+                        } else {
+                            // if it is not an array, execute the action
+                            executeAction(interactionData.endAction);
+                        }
+                    }
+                }
+            }
+            function tick() {
+                if (player && player.getCurrentTime) {
+                    let time = player.getCurrentTime();
+                    let duration = player.getDuration();
+                    let appearTime = interactionData.appearTime;
+                    if (time > appearTime) {
+                        if (!buttonContainer.classList.contains('button-visible')) {
+                            buttonContainer.classList.add('button-visible');
+                        }
+                    } else {
+                        if (buttonContainer.classList.contains('button-visible')) {
+                            buttonContainer.classList.remove('button-visible');
+                        }
+                    }
+                    if (time >= duration) {
+                        let loopEnd = interactionData.options.loopEnd;
+                        let seekTo = duration - loopEnd;
+                        if (seekTo < 0) {
+                            seekTo = 0;
+                        } else if (seekTo > duration) {
+                            seekTo = duration;
+                        }
+                        player.seekTo(seekTo);
+                        player.pauseVideo();
+                        // execute endAction if it exists
+                        if (interactionData.endAction) {
+                            if (Array.isArray(interactionData.endAction)) {
+                                // if it is an array, execute each action
+                                interactionData.endAction.forEach((action) => {
+                                    executeAction(action);
+                                });
+                            } else {
+                                // if it is not an array, execute the action
+                                executeAction(interactionData.endAction);
+                            }
+                        }
+                    }
+                }
+                setTimeout(tick, 100);
+            }
+            tick();
+        }
+    </script>
+</body>
+</html>

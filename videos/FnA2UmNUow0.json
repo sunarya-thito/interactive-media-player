@@ -1,0 +1,20 @@
+{
+  "layout": "BOTTOM",
+  "appearTime": 8,
+  "buttons": [
+    {
+      "label": "Ya",
+      "action": {
+        "type": "GO_TO",
+        "value": "5LIHR3vSjBc"
+      }
+    },
+    {
+      "label": "Tidak",
+      "action": {
+        "type": "GO_TO",
+        "value": "5WH1e3HZjNU"
+      }
+    }
+  ]
+}

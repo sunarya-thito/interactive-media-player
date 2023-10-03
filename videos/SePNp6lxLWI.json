@@ -1,0 +1,27 @@
+{
+  "layout": "BOTTOM",
+  "appearTime": 4,
+  "buttons": [
+    {
+      "label": "Ya",
+      "action": {
+        "type": "GO_TO",
+        "value": "rrh_2LYyfIM"
+      }
+    },
+    {
+      "label": "Tidak",
+      "action": {
+        "type": "GO_TO",
+        "value": "FnA2UmNUow0"
+      }
+    },
+    {
+      "label": "Ulangi",
+      "action": {
+        "type": "SEEK_TO",
+        "value": 0
+      }
+    }
+  ]
+}
